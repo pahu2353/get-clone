@@ -1,15 +1,14 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import { writeFile, unlink } from "fs/promises"; // Write and clean up files
-import OpenAI from "openai";
 import formidable from "formidable";
-import path from "path";
+import fs from "fs";
+import { unlink } from "fs/promises";
+import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
-// Disable default body parser
+// Disable Next.js body parser
 export const config = {
   api: {
     bodyParser: false,
@@ -21,28 +20,27 @@ export default async function handler(
   res: NextApiResponse
 ): Promise<void> {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    res.status(405).json({ error: "Method not allowed" });
+    return;
   }
 
   const form = new formidable.IncomingForm({
-    uploadDir: "/tmp", // Directory for temporary file storage
-    keepExtensions: true, // Keep file extensions
+    uploadDir: "/tmp", // Temporary directory for uploads
+    keepExtensions: true, // Retain file extensions
   });
 
   try {
-    const { files } = await new Promise<{
-      files: formidable.Files;
-    }>((resolve, reject) => {
+    const { files } = await new Promise<{ files: formidable.Files }>((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) reject(err);
         else resolve({ files });
       });
     });
 
-    const audioFile = files.audio as formidable.File;
+    const audioFile = files.audio as formidable.File; // Ensure this matches your FormData key
     const filePath = audioFile.filepath;
 
-    // Pass the audio file to OpenAI Whisper
+    // Use Whisper API to transcribe the file
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
       model: "whisper-1",

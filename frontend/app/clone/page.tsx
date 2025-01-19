@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react';
+import fs from "fs";
 import { writeFile, unlink } from "fs/promises"; // For saving and cleaning up files
 import path from "path";
 import OpenAI from "openai";
@@ -68,33 +69,33 @@ export default function VoiceRecorder() {
   };
 
   const transcribeAudioBlob = async () => {
-    if (!audioBlob) {
-      console.error("No audio blob available");
-      return;
-    }
-  
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.wav");
-  
     try {
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData,
-      });
+      // Step 1: Convert Blob to Buffer
+      if(audioBlob != null){
+        const buffer = Buffer.from(await audioBlob.arrayBuffer());
   
-      const result = await response.json();
-      if (response.ok) {
-        setTranscribedText(result.text); // Set the transcribed text
-      } else {
-        console.error("Error during transcription:", result.error);
-        setTranscribedText("Error during transcription.");
+        // Step 2: Save Buffer to a Temporary File
+        const tempFilePath = path.join("/tmp", "audio.mp3");
+        await writeFile(tempFilePath, buffer);
+    
+        // Step 3: Use Whisper API for Transcription
+        const transcription = await openai.audio.transcriptions.create({
+            file: fs.createReadStream(tempFilePath),
+            model: "whisper-1",
+        });
+    
+        // Step 4: Clean Up Temporary File
+        await unlink(tempFilePath);
+    
+        // Step 5: Return Transcribed Text
+        setTranscribedText(transcription.text);
       }
+      
     } catch (error) {
       console.error("Error during transcription:", error);
-      setTranscribedText("Error during transcription.");
+      throw error; // Rethrow the error for further handling
     }
   };
-  
 
   // Cleanup function
   useEffect(() => {
