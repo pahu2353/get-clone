@@ -170,6 +170,7 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
           }
           
           // Move to next step after successful save
+          setIsRecording(false)
           setStep('record');
           
         } catch (err) {

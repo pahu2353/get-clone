@@ -146,7 +146,7 @@ async def chat_completion(request: ChatRequest):
                 {
                     "role": "system",
                     "content": request.description
-                    + "\nMake sure your message is three sentences or less, please!",
+                    + "\nMake sure your message is two sentences or less, please!",
                 }
             ]
             + [
