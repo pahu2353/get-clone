@@ -1,2 +1,3 @@
 # get-clone
 Upload your consciousness — create an AI clone of yourself that looks, speaks, and acts like you.
+Get-clone uses generative AI to create a lifelike digital clone of your personality. Leveraging OpenAI for intelligent responses to prompts and voice transposition, Elevenlabs to create a realistic voice matching that of the user, and a local lip-sync model to seamlessly animate your recorded video into a lifelike response. Your generative AI clone can also talk in any language!
