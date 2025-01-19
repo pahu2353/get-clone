@@ -68,6 +68,9 @@ export default function VideoConference() {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   // Add new state for continuous mode
   const [isContinuous, setIsContinuous] = useState(false);
+  // Add new state/refs
+  const [isPlayingResponse, setIsPlayingResponse] = useState(false);
+  const originalVideoUrlRef = useRef<string>("");
 
   const currVoiceDescription =
     selectedVoice?.description || "No description available";
@@ -168,6 +171,7 @@ export default function VideoConference() {
             body: JSON.stringify({
               text: chatResult.content,
               voice_id: selectedVoice?.id || voices[0]?.id || "default",
+              name: selectedVoice?.name
             }),
           });
 
@@ -357,6 +361,32 @@ export default function VideoConference() {
     }
   };
 
+  // Update generate handler
+  const handleGenerate = async () => {
+    try {
+      const voiceResponse = await fetch("http://localhost:8000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: chatResult.content,
+          voice_id: selectedVoice?.id || voices[0]?.id || "default",
+        }),
+      });
+
+      if (voiceResponse.ok) {
+        const responseData = await voiceResponse.json();
+        
+        if (responseData.video_url) {
+          originalVideoUrlRef.current = videoUrl;
+          setIsPlayingResponse(true);
+          setVideoUrl(responseData.video_url);
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   return (
     
     <div className="flex flex-col h-screen overflow-hidden bg-[#1a1a1a]">
@@ -419,13 +449,38 @@ export default function VideoConference() {
       {/* Main content */}
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 relative bg-[#1a1a1a]">
-          <video
-            className="w-full h-full object-cover"
-            src={videoUrl}
-            autoPlay
-            loop
-            playsInline
-          />
+        <video
+          key={videoUrl} // Force reloading the video when the URL changes
+          className="w-full h-full object-cover"
+          src={videoUrl}
+          autoPlay
+          loop={!isPlayingResponse} // Prevent looping if it's the fetched video
+          playsInline
+          onEnded={() => {
+            if (isPlayingResponse) {
+              // Switch back to the original video
+              setVideoUrl(originalVideoUrlRef.current);
+              setIsPlayingResponse(false);
+            }
+          }}
+          onLoadedMetadata={() => {
+            if (isPlayingResponse) {
+              // Handle short video case with a timeout
+              const videoElement = document.querySelector('video');
+              const duration = videoElement?.duration || 0;
+
+              if (duration && duration < 1) {
+                setTimeout(() => {
+                  if (isPlayingResponse) {
+                    setVideoUrl(originalVideoUrlRef.current);
+                    setIsPlayingResponse(false);
+                  }
+                }, duration * 1000);
+              }
+            }
+          }}
+        />
+
         </div>
 
         {/* Right sidebar */}
@@ -450,7 +505,7 @@ export default function VideoConference() {
                   <div className="bg-white mr-auto p-4 rounded-lg max-w-[80%]">
                     {isLoadingAudio ? (
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-500">Talking...</span>
+                        <span className="text-gray-500">Thinking...</span>
                         <TypingAnimation />
                       </div>
                     ) : (
@@ -517,21 +572,21 @@ export default function VideoConference() {
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <Mic className="h-5 w-5" />
+              <Mic className="h-10 w-10" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <Video className="h-5 w-5" />
+              <Video className="h-10 w-10" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <Shield className="h-5 w-5" />
+              <Shield className="h-10 w-10" />
             </Button>
           </div>
 
@@ -541,41 +596,41 @@ export default function VideoConference() {
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <Users className="h-5 w-5" />
+              <Users className="h-10 w-10" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <MessageSquare className="h-5 w-5" />
+              <MessageSquare className="h-10 w-10" />
             </Button>
             <Button
               className="w-full text-2xl"
               onClick={() => setShowCloneDialog(true)}
             >
-              Create Voice Clone
+              Get Clone
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <Record className="h-5 w-5" />
+              <Record className="h-10 w-10" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <Smile className="h-5 w-5" />
+              <Smile className="h-10 w-10" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="text-white hover:bg-[#2b2b2b]"
             >
-              <MoreHorizontal className="h-5 w-5" />
+              <MoreHorizontal className="h-10 w-10" />
             </Button>
           </div>
 

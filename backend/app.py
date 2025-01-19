@@ -58,6 +58,7 @@ class ChatRequest(BaseModel):
 class TextToSpeechRequest(BaseModel):
     text: str
     voice_id: str
+    name: str
 
 
 @app.get("/voices", response_model=list[Voice])
@@ -193,7 +194,7 @@ async def generate_speech(request: TextToSpeechRequest):
 
             # Use context managers for file handling
             files = {
-                "input_face": open("Patrick.mp4", "rb"),
+                "input_face": open(f"{request.name}.mp4", "rb"),
                 "input_audio": open("temp_audio.mp3", "rb"),
             }
                 

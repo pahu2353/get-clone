@@ -52,7 +52,7 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [countdown, setCountdown] = useState(5);
-  const [status, setStatus] = useState<'idle' | 'recording' | 'processing' | 'success'>('idle')
+  const [status, setStatus] = useState<'idle' | 'video' | 'recording' | 'processing' | 'success'>('idle')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -104,7 +104,7 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' })
+        const blob = new Blob(chunksRef.current, { type: 'audio/mp3' })
         setAudioBlob(blob)
         handleSubmitRecording(blob)
       }
@@ -117,13 +117,13 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
     }
   }
 
-  // const stopRecording = () => {
-  //   if (mediaRecorderRef.current && isRecording) {
-  //     mediaRecorderRef.current.stop()
-  //     setIsRecording(false)
-  //     setStatus('processing')
-  //   }
-  // }
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      setStatus('processing')
+    }
+  }
 
   const captureVideo = async () => {
     try {
@@ -203,7 +203,7 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
     }
   };
 
-  const stopRecording = () => {
+  const stopRecordingVideo = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
@@ -355,7 +355,7 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
             </div>
 
             <Button
-              onClick={isRecording ? stopRecording : captureVideo}
+              onClick={isRecording ? stopRecordingVideo : captureVideo}
               disabled={isSaving}
               className="w-full"
             >
