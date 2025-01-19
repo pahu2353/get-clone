@@ -198,6 +198,7 @@ export default function ChatInterface() {
     if (!userMessage.trim()) return
 
     const newUserMessage = { role: 'user' as const, content: userMessage }
+    setUserMessage('')
     setMessages(prev => [...prev, newUserMessage])
 
     try {
@@ -206,7 +207,7 @@ export default function ChatInterface() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, { role: 'user', content: userMessage }],
-          //description: selectedVoice?.description || 'No description available',
+          description: selectedVoice?.description || 'No description available',
         })
       })
 
@@ -393,9 +394,6 @@ export default function ChatInterface() {
               <span className="sr-only">Send message</span>
             </Button>
           </form>
-
-          
-
         </main>
         <audio 
           ref={audioRef}

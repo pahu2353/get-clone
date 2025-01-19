@@ -12,6 +12,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import requests
 import json
+import base64
 
 # Load environment variables at the start
 load_dotenv()
@@ -74,7 +75,7 @@ async def get_voices():
                         "description": voice.description,
                     }
                 )
-                print(voice.description)
+            
         return voices
     except Exception as e:
         return {"error": str(e)}
@@ -192,7 +193,7 @@ async def generate_speech(request: TextToSpeechRequest):
 
             # Use context managers for file handling
             files = {
-                "input_face": open("nick.mp4", "rb"),
+                "input_face": open("Patrick.mp4", "rb"),
                 "input_audio": open("temp_audio.mp3", "rb"),
             }
                 
@@ -245,85 +246,53 @@ async def generate_speech(request: TextToSpeechRequest):
                         break
                     else:
                         print("Current status:", status)
+            
+            return {
+                "video_url": response_data["output"]["output_video"],
+            }
                         
         except Exception as e:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
             raise ValueError(f"Request failed: {str(e)}")
-    #     finally:
-    #         pass
-    #         # # Cleanup temporary files
-    #         # if os.path.exists(audio_path):
-    #         #     # os.remove(audio_path)
-            
-    #     print("fwrite successful")  # Add loggingo    
-
-    #     # # play(audio)
-    #     # api_key = os.getenv("GOOEY_API_KEY")
-    #     # if not api_key:
-    #     #     raise ValueError("GOOEY_API_KEY environment variable is not set.")
-
-    #     # # Prepare the files
-    #     # files = {
-    #     #     "input_face": open("Patrick1.png", "rb"),
-    #     #     "input_audio": open(audio_path, "rb")
-    #     # }
         
-    #     # print("prepare dat !!!")  # Add logging  
-
-    #     # # Payload can be empty if no specific settings are needed
-    #     # payload = {}
-
-    #     # # Make the initial request
-    #     # response = requests.post(
-    #     #     "https://api.gooey.ai/v2/Lipsync/form/",
-    #     #     headers={"Authorization": f"Bearer {api_key}"},
-    #     #     files=files,
-    #     #     data={"json": json.dumps(payload)},
-    #     # )
-
-    #     # # Debug response
-    #     # print("Response status code:", response.status_code)
-    #     # print("Response headers:", response.headers)
-    #     # print("Response content:", response.content)
-
-    #     # Check for request success
-    #     if not response.ok:
-    #         print("Error in initial request:", response.content)
-    #         response.raise_for_status()
-
-    #     # Extract output directly if Location header is missing
-    #     if "Location" not in response.headers:
-    #         print("Processing completed synchronously.")
-    #         response_data = response.json()
-    #         if "output" in response_data:
-    #             print("Output video URL:", response_data["output"]["output_video"])
-    #         else:
-    #             print("No output found in the response.")
-    #     else:
-    #         # Polling logic (not needed in this case but retained for completeness)
-    #         status_url = response.headers["Location"]
-    #         while True:
-    #             status_response = requests.get(
-    #                 status_url, headers={"Authorization": f"Bearer {api_key}"}
-    #             )
-    #             if not status_response.ok:
-    #                 print("Error polling status:", status_response.content)
-    #                 status_response.raise_for_status()
-
-    #             result = status_response.json()
-    #             status = result.get("status")
-
-    #             if status == "completed":
-    #                 print("Lipsync completed successfully:", result)
-    #                 break
-    #             elif status == "failed":
-    #                 print("Lipsync processing failed:", result)
-    #                 break
-    #             else:
-    #                 print("Current status:", status)
- 
-
     except Exception as e:
         print(f"Audio generation error: {str(e)}")  # Add logging
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/save-video")
+async def save_video(
+    name: str = Form(...),
+    video: UploadFile = File(...)
+):
+    """Save video file to both backend and frontend public directories."""
+    try:
+        # Define paths
+        backend_path = f"./{name}.mp4"
+        frontend_path = f"../frontend/public/{name}.mp4"
+        
+        # Read video data
+        video_data = await video.read()
+        
+        # Save to backend directory
+        with open(backend_path, "wb") as f:
+            f.write(video_data)
+            
+        # Save to frontend public directory
+        os.makedirs(os.path.dirname(frontend_path), exist_ok=True)
+        with open(frontend_path, "wb") as f:
+            f.write(video_data)
+            
+        return {
+            "status": "success",
+            "message": f"Video saved as {name}.mp4",
+            "backend_path": backend_path,
+            "frontend_path": frontend_path
+        }
+        
+    except Exception as e:
+        # Cleanup on error
+        for path in [backend_path, frontend_path]:
+            if os.path.exists(path):
+                os.remove(path)
         raise HTTPException(status_code=500, detail=str(e))
