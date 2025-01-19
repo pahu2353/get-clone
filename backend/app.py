@@ -2,17 +2,19 @@ from fastapi import FastAPI, UploadFile, Form, File
 from elevenlabs.client import ElevenLabs
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
 import shutil
 import os
+from openai import OpenAI
+
 
 # Initialize FastAPI app
 app = FastAPI()
 
 # Initialize ElevenLabs client
-client = ElevenLabs(
-    api_key="sk_3d4d7eaa45430f3d172e182584159c4993e4b74b1faabb22"
-)  # Replace with your actual API key
+client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Add CORS middleware to allow cross-origin requests
 app.add_middleware(
@@ -79,3 +81,27 @@ async def clone_voice(name: str = Form(...), file: UploadFile = File(...)):
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    """Transcribe audio using OpenAI Whisper API."""
+    try:
+        # Save uploaded file temporarily
+        temp_file_path = f"./temp_{file.filename}"
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # Transcribe using OpenAI
+        with open(temp_file_path, "rb") as audio_file:
+            transcription = openai_client.audio.transcriptions.create(
+                model="whisper-1", file=audio_file
+            )
+
+        # Cleanup temp file
+        os.remove(temp_file_path)
+
+        return {"text": transcription.text, "status": "success"}
+
+    except Exception as e:
+        return {"error": str(e), "status": "error"}
