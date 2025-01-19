@@ -277,7 +277,7 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create Voice Clone</DialogTitle>
+          <DialogTitle>Create Clone</DialogTitle>
           <DialogDescription>
             {step === 'name' && "Enter the name for your voice clone"}
             {step === 'description' && "Enter a description for your voice clone"}
