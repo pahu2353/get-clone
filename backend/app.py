@@ -9,6 +9,8 @@ import shutil
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
+import requests
+import json
 
 # Load environment variables at the start
 load_dotenv()
@@ -167,6 +169,7 @@ async def generate_speech(request: TextToSpeechRequest):
             text=request.text,
             voice=request.voice_id,
             model="eleven_turbo_v2_5",
+            output_format="mp3_44100_128",
         )
         print("Audio generation successful")  # Add logging
 

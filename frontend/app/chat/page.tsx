@@ -380,6 +380,8 @@ export default function ChatInterface() {
             </Button>
           </form>
 
+          
+
         </main>
         <audio 
           ref={audioRef}
