@@ -1,11 +1,17 @@
-from fastapi import FastAPI, UploadFile, Form, File
+from fastapi import FastAPI, UploadFile, Form, File, HTTPException
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 from elevenlabs.client import ElevenLabs
+from elevenlabs import play
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 from openai import OpenAI
+from dotenv import load_dotenv
 
+# Load environment variables at the start
+load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -13,8 +19,8 @@ app = FastAPI()
 # Initialize ElevenLabs client
 client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 
-# Initialize OpenAI client
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize OpenAI client with explicit API key
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Add CORS middleware to allow cross-origin requests
 app.add_middleware(
@@ -33,6 +39,20 @@ class Voice(BaseModel):
     id: str
     name: str
     description: str | None
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+class TextToSpeechRequest(BaseModel):
+    text: str
+    voice_id: str
 
 
 @app.get("/voices", response_model=list[Voice])
@@ -105,3 +125,60 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"error": str(e), "status": "error"}
+
+
+# Add this new route
+@app.post("/chat")
+async def chat_completion(request: ChatRequest):
+    """Generate text using ChatGPT given input messages."""
+    try:
+        completion = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are Nick. You really want an e-girl.You will still answer questions well but you like e-girls quite a bit and want a girlfriend. Please limit responses to three sentences or less.",
+                }
+            ]
+            + [
+                {"role": msg.role, "content": msg.content}
+                for msg in request.messages
+            ],
+        )
+
+        return {
+            "content": completion.choices[0].message.content,
+            "status": "success",
+        }
+    except Exception as e:
+        return {"error": str(e), "status": "error"}
+
+
+@app.post("/generate")
+async def generate_speech(request: TextToSpeechRequest):
+    """Generate speech from text using ElevenLabs API."""
+    try:
+        print(
+            f"Generating speech for text: {request.text[:50]}..."
+        )  # Add logging
+        print(f"Using voice ID: {request.voice_id}")  # Add logging
+
+        audio = client.generate(
+            text=request.text,
+            voice=request.voice_id,
+            model="eleven_turbo_v2_5",
+        )
+        print("Audio generation successful")  # Add logging
+
+        # audio_bytes = BytesIO(audio)
+        # return StreamingResponse(
+        #     audio_bytes,
+        #     media_type="audio/mpeg",
+        #     headers={"Content-Disposition": "attachment;filename=speech.mp3"},
+        # )
+        
+        play(audio)
+        
+    except Exception as e:
+        print(f"Audio generation error: {str(e)}")  # Add logging
+        raise HTTPException(status_code=500, detail=str(e))

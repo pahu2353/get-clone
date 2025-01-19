@@ -19,9 +19,51 @@ interface CloneDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-const SAMPLE_TEXT = `The quick brown fox jumps over the lazy dog. 
-This is a sample passage that helps us capture your voice characteristics. 
-Please read it clearly and naturally.`
+const SAMPLE_TEXT = `Prosecutors have opened a massive investigation into allegations of fixing games and illegal betting.
+
+Different telescope designs perform differently and have different strengths and weaknesses.
+
+We can continue to strengthen the education of good lawyers.
+
+Feedback must be timely and accurate throughout the project.
+
+Humans also judge distance by using the relative sizes of objects.
+
+Churches should not encourage it or make it look harmless.
+
+Learn about setting up wireless network configuration.
+
+You can eat them fresh, cooked or fermented.
+
+If this is true then those who tend to think creatively really are somehow different.
+
+She will likely jump for joy and want to skip straight to the honeymoon.
+
+The sugar syrup should create very fine strands of sugar that drape over the handles.
+
+But really in the grand scheme of things, this information is insignificant.
+
+I let the positive overrule the negative.
+
+He wiped his brow with his forearm.
+
+Instead of fixing it, they give it a nickname.
+
+About half the people who are infected also lose weight.
+
+The second half of the book focuses on argument and essay writing.
+
+We have the means to help ourselves.
+
+The large items are put into containers for disposal.
+
+He loves to watch me drink this stuff.
+
+Still, it is an odd fashion choice.
+
+Funding is always an issue after the fact.
+
+Let us encourage each other.`
 
 type Step = 'name' | 'record' | 'processing' | 'success'
 
