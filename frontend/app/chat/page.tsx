@@ -45,6 +45,9 @@ export default function ChatInterface() {
   // Add new state for continuous mode
   const [isContinuous, setIsContinuous] = useState(false)
 
+  const currVoiceDescription = selectedVoice?.description || 'No description available';
+
+
   useEffect(() => {
     const fetchVoices = async () => {
       try {
@@ -107,11 +110,14 @@ export default function ChatInterface() {
         const userMessage = { role: 'user' as const, content: transcribeData.text }
         setMessages(prev => [...prev, userMessage])
         
+
+
         const chatResponse = await fetch('http://localhost:8000/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [...messages, userMessage]
+            messages: [...messages, userMessage],
+            description: selectedVoice?.description || 'You are very friendly!'  // Added description
           })
         })
         
@@ -199,7 +205,8 @@ export default function ChatInterface() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, { role: 'user', content: userMessage }]
+          messages: [...messages, { role: 'user', content: userMessage }],
+          //description: selectedVoice?.description || 'No description available',
         })
       })
 
@@ -305,6 +312,7 @@ export default function ChatInterface() {
           <div className="w-6" /> {/* Spacer for alignment */}
         </header>
 
+    
         <main className="flex-1 flex flex-col items-center justify-center p-4">
           <div className="w-full max-w-md flex-1 overflow-y-auto space-y-4 mb-4">
             {messages.slice(0, -1).map((message, index) => (
@@ -320,6 +328,8 @@ export default function ChatInterface() {
               </div>
             ))}
             
+  
+
             {messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
               <div className="bg-white mr-auto p-4 rounded-lg max-w-[80%]">
                 {isLoadingAudio ? (
@@ -334,12 +344,16 @@ export default function ChatInterface() {
             )}
           </div>
 
+          
+
           <Avatar className="h-24 w-24">
             <AvatarImage src="/placeholder.svg" alt="AI Assistant" />
             <AvatarFallback>
               {selectedVoice ? selectedVoice.name : ''}
             </AvatarFallback>
           </Avatar>
+
+    
 
           {transcription && (
             <div className="w-full max-w-md p-4 bg-white rounded-lg shadow">

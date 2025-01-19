@@ -93,13 +93,11 @@ export function CloneDialog({ open, onOpenChange }: CloneDialogProps) {
     formData.append('description', description)
 
     try {
-      const response = await fetch('https://api.elevenlabs.io/v1/voice/create', {
+      const response = await fetch('http://localhost:8000/clone', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer YOUR_API_KEY`, // Replace with your API key
-        },
-        body: formData,
+        body: formData
       })
+
 
       if (!response.ok) {
         throw new Error('Failed to clone voice')

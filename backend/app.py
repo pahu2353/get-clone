@@ -4,6 +4,7 @@ from io import BytesIO
 from elevenlabs.client import ElevenLabs
 from elevenlabs import play
 from pydantic import BaseModel
+from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
@@ -50,6 +51,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
+    description: str = ""
 
 
 class TextToSpeechRequest(BaseModel):
@@ -69,31 +71,33 @@ async def get_voices():
                     {
                         "id": voice.voice_id,
                         "name": voice.name,
-                        "description": voice.labels.get("description"),
+                        "description": voice.description,
                     }
                 )
+                print(voice.description)
         return voices
     except Exception as e:
         return {"error": str(e)}
 
 
 @app.post("/clone")
-async def clone_voice(name: str = Form(...), file: UploadFile = File(...)):
+async def clone_voice(
+    name: str = Form(...), 
+    description: str = Form(...), 
+    file: UploadFile = File(...)
+):
     """Clone a voice using single uploaded audio sample."""
     try:
-        # Save uploaded file to temp location
         temp_file_path = f"./temp_{file.filename}"
         with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Clone the voice
         voice = client.clone(
             name=name,
-            description=f"Custom cloned voice for {name}",
+            description=description,  # Use provided description
             files=[temp_file_path],
         )
 
-        # Cleanup temp file
         os.remove(temp_file_path)
 
         return {
@@ -139,7 +143,8 @@ async def chat_completion(request: ChatRequest):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are Nick. You really want an e-girl.You will still answer questions well but you like e-girls quite a bit and want a girlfriend. Please limit responses to three sentences or less.",
+                    "content": request.description
+                    + "\nMake sure your message is three sentences or less, please!",
                 }
             ]
             + [
@@ -169,19 +174,156 @@ async def generate_speech(request: TextToSpeechRequest):
             text=request.text,
             voice=request.voice_id,
             model="eleven_turbo_v2_5",
-            output_format="mp3_44100_128",
         )
         print("Audio generation successful")  # Add logging
 
-        # audio_bytes = BytesIO(audio)
-        # return StreamingResponse(
-        #     audio_bytes,
-        #     media_type="audio/mpeg",
-        #     headers={"Content-Disposition": "attachment;filename=speech.mp3"},
-        # )
+        audio_path = "./temp_audio.mp3"
+        try:
+            audio_bytes = b''.join(audio) if hasattr(audio, '__iter__') else audio
+            
+            with open(audio_path, "wb") as f:
+                f.write(audio_bytes)
+            
+            print("Audio write successful")
+
+            api_key = os.getenv("GOOEY_API_KEY")
+            if not api_key:
+                raise ValueError("GOOEY_API_KEY environment variable is not set.")
+
+            # Use context managers for file handling
+            files = {
+                "input_face": open("nick.mp4", "rb"),
+                "input_audio": open("temp_audio.mp3", "rb"),
+            }
+                
+            payload = {}
+
+            response = requests.post(
+                "https://api.gooey.ai/v2/Lipsync/form/",
+                headers={"Authorization": f"Bearer {api_key}"},
+                files=files,
+                data={"json": json.dumps(payload)},
+            )
+
+            # Debug response
+            print("Response status code:", response.status_code)
+            print("Response headers:", response.headers)
+            print("Response content:", response.content)
+
+            # Check for request success
+            if not response.ok:
+                print("Error in initial request:", response.content)
+                response.raise_for_status()
+
+            # Extract output directly if Location header is missing
+            if "Location" not in response.headers:
+                print("Processing completed synchronously.")
+                response_data = response.json()
+                if "output" in response_data:
+                    print("Output video URL:", response_data["output"]["output_video"])
+                else:
+                    print("No output found in the response.")
+            else:
+                # Polling logic (not needed in this case but retained for completeness)
+                status_url = response.headers["Location"]
+                while True:
+                    status_response = requests.get(
+                        status_url, headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                    if not status_response.ok:
+                        print("Error polling status:", status_response.content)
+                        status_response.raise_for_status()
+
+                    result = status_response.json()
+                    status = result.get("status")
+
+                    if status == "completed":
+                        print("Lipsync completed successfully:", result)
+                        break
+                    elif status == "failed":
+                        print("Lipsync processing failed:", result)
+                        break
+                    else:
+                        print("Current status:", status)
+                        
+        except Exception as e:
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+            raise ValueError(f"Request failed: {str(e)}")
+    #     finally:
+    #         pass
+    #         # # Cleanup temporary files
+    #         # if os.path.exists(audio_path):
+    #         #     # os.remove(audio_path)
+            
+    #     print("fwrite successful")  # Add loggingo    
+
+    #     # # play(audio)
+    #     # api_key = os.getenv("GOOEY_API_KEY")
+    #     # if not api_key:
+    #     #     raise ValueError("GOOEY_API_KEY environment variable is not set.")
+
+    #     # # Prepare the files
+    #     # files = {
+    #     #     "input_face": open("Patrick1.png", "rb"),
+    #     #     "input_audio": open(audio_path, "rb")
+    #     # }
         
-        play(audio)
-        
+    #     # print("prepare dat !!!")  # Add logging  
+
+    #     # # Payload can be empty if no specific settings are needed
+    #     # payload = {}
+
+    #     # # Make the initial request
+    #     # response = requests.post(
+    #     #     "https://api.gooey.ai/v2/Lipsync/form/",
+    #     #     headers={"Authorization": f"Bearer {api_key}"},
+    #     #     files=files,
+    #     #     data={"json": json.dumps(payload)},
+    #     # )
+
+    #     # # Debug response
+    #     # print("Response status code:", response.status_code)
+    #     # print("Response headers:", response.headers)
+    #     # print("Response content:", response.content)
+
+    #     # Check for request success
+    #     if not response.ok:
+    #         print("Error in initial request:", response.content)
+    #         response.raise_for_status()
+
+    #     # Extract output directly if Location header is missing
+    #     if "Location" not in response.headers:
+    #         print("Processing completed synchronously.")
+    #         response_data = response.json()
+    #         if "output" in response_data:
+    #             print("Output video URL:", response_data["output"]["output_video"])
+    #         else:
+    #             print("No output found in the response.")
+    #     else:
+    #         # Polling logic (not needed in this case but retained for completeness)
+    #         status_url = response.headers["Location"]
+    #         while True:
+    #             status_response = requests.get(
+    #                 status_url, headers={"Authorization": f"Bearer {api_key}"}
+    #             )
+    #             if not status_response.ok:
+    #                 print("Error polling status:", status_response.content)
+    #                 status_response.raise_for_status()
+
+    #             result = status_response.json()
+    #             status = result.get("status")
+
+    #             if status == "completed":
+    #                 print("Lipsync completed successfully:", result)
+    #                 break
+    #             elif status == "failed":
+    #                 print("Lipsync processing failed:", result)
+    #                 break
+    #             else:
+    #                 print("Current status:", status)
+ 
+
     except Exception as e:
         print(f"Audio generation error: {str(e)}")  # Add logging
         raise HTTPException(status_code=500, detail=str(e))
