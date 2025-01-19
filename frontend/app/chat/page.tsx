@@ -1,19 +1,68 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, Mic, Send } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
+import { CloneDialog } from "@/components/clone"
+
+interface Voice {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 export default function ChatInterface() {
   const [isListening, setIsListening] = useState(false)
+  const [voices, setVoices] = useState<Voice[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showCloneDialog, setShowCloneDialog] = useState(false)
+
+  useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/voices')
+        const data = await response.json()
+        setVoices(data)
+      } catch (error) {
+        console.error('Error fetching voices:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchVoices()
+  }, [])
 
   const Sidebar = () => (
     <nav className="flex flex-col gap-4">
-      <a href="#" className="text-lg font-medium">Home</a>
-      <a href="#" className="text-lg font-medium">Chat History</a>
+      <Button
+        className="w-full"
+        onClick={() => setShowCloneDialog(true)}
+      >
+        Create Voice Clone
+      </Button>
+      <div className="space-y-2">
+        <h2 className="text-lg font-medium">Available Voices</h2>
+        {isLoading ? (
+          <p>Loading voices...</p>
+        ) : (
+          voices.map((voice) => (
+            <a 
+              key={voice.id}
+              href="#" 
+              className="block text-sm text-gray-600 hover:text-gray-900"
+            >
+              {voice.name}
+              {voice.description && (
+                <span className="block text-xs text-gray-400">{voice.description}</span>
+              )}
+            </a>
+          ))
+        )}
+      </div>
       <a href="#" className="text-lg font-medium">Settings</a>
     </nav>
   )
@@ -68,7 +117,10 @@ export default function ChatInterface() {
           </form>
         </main>
       </div>
+      <CloneDialog 
+        open={showCloneDialog} 
+        onOpenChange={setShowCloneDialog}
+      />
     </div>
   )
 }
-

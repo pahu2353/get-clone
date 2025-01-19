@@ -1,14 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react';
-import fs from "fs";
-import { writeFile, unlink } from "fs/promises"; // For saving and cleaning up files
 import path from "path";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 export default function VoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
@@ -31,7 +24,7 @@ export default function VoiceRecorder() {
     };
 
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/wav' });
+      const blob = new Blob(chunks, { type: 'audio/mp3' });
       setAudioBlob(blob);
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
@@ -48,54 +41,36 @@ export default function VoiceRecorder() {
   };
 
   const handleCloneVoice = async () => {
-    if (!audioBlob) return;
-
-    setCloningMessage('Uploading and cloning voice...');
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.wav');
-    formData.append('voiceName', 'User Cloned Voice');
-
-    const response = await fetch('/api/clone-voice', {
-      method: 'POST',
-      body: formData,
-    });
-
-    const result = await response.json();
-    if (response.ok) {
-      setCloningMessage(`Voice cloned successfully! Voice ID: ${result.voiceId}`);
-    } else {
-      setCloningMessage(`Error: ${result.message}`);
+    if (!audioBlob) {
+      console.error("No audio blob available");
+      return;
     }
-  };
+    else{
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.mp3");
+      try {
 
-  const transcribeAudioBlob = async () => {
-    try {
-      // Step 1: Convert Blob to Buffer
-      if(audioBlob != null){
-        const buffer = Buffer.from(await audioBlob.arrayBuffer());
-  
-        // Step 2: Save Buffer to a Temporary File
-        const tempFilePath = path.join("/tmp", "audio.mp3");
-        await writeFile(tempFilePath, buffer);
-    
-        // Step 3: Use Whisper API for Transcription
-        const transcription = await openai.audio.transcriptions.create({
-            file: fs.createReadStream(tempFilePath),
-            model: "whisper-1",
+        const response = await fetch("/api/transcribe", {
+          method: "POST",
+          body: formData,
         });
     
-        // Step 4: Clean Up Temporary File
-        await unlink(tempFilePath);
-    
-        // Step 5: Return Transcribed Text
-        setTranscribedText(transcription.text);
+        const result = await response.json();
+        if (response.ok) {
+          setTranscribedText(result.text); // Update state with transcription text
+        } else {
+          console.error("Error during transcription:", result.error);
+          setTranscribedText("Error during transcription.");
+        }
+      } catch (error) {
+        console.error("Error during transcription:", error);
+        setTranscribedText("Error during transcription.");
       }
-      
-    } catch (error) {
-      console.error("Error during transcription:", error);
-      throw error; // Rethrow the error for further handling
     }
+  
+    
   };
+  
 
   // Cleanup function
   useEffect(() => {
@@ -142,7 +117,10 @@ export default function VoiceRecorder() {
       {audioBlob && (
         <div>
           <p>Recording complete! Ready to clone.</p>
-          <button onClick={handleCloneVoice}>Clone Voice</button>
+          <button 
+            onClick={handleCloneVoice}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >Clone Voice</button>
           <p>{transcribedText}</p>
         </div>
       )}
