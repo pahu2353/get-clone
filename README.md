@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/aa8ad92a-e796-47ce-9dfa-a6c8d907e1f9
+
 ## Inspiration ⚙️
 We first came up with this idea when thinking about how cool it would be to have the opportunity to talk to yourself. We wanted to build something personable and speedy, allowing people not familiar with the latest tech trends to become interested in AI. We think that there’s countless applications of this technology, whether that be in sales, hospitals, or elderly homes.
 
