@@ -1,29 +1,59 @@
-'use server';
-import fs from 'fs';
-import OpenAI from 'openai';
-import { writeFile, unlink } from 'fs/promises'; // Use unlink to clean up temporary files
-import { join } from 'path';
+import { NextApiRequest, NextApiResponse } from "next";
+import fs from "fs";
+import { writeFile, unlink } from "fs/promises"; // Write and clean up files
+import OpenAI from "openai";
+import formidable from "formidable";
+import path from "path";
 
-const openai = new OpenAI();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "",
+});
 
-export async function transcribeAudio(audioBlob : Blob) {
-  const formData = new FormData();
-  formData.append('file', audioBlob, 'audio.webm'); // Append the Blob to the FormData
+// Disable default body parser
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const form = new formidable.IncomingForm({
+    uploadDir: "/tmp", // Directory for temporary file storage
+    keepExtensions: true, // Keep file extensions
+  });
 
   try {
-    const response = await fetch('/api/transcribe', {
-      method: 'POST',
-      body: formData,
+    const { files } = await new Promise<{
+      files: formidable.Files;
+    }>((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ files });
+      });
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to transcribe audio');
-    }
+    const audioFile = files.audio as formidable.File;
+    const filePath = audioFile.filepath;
 
-    const { text } = await response.json();
-    return text;
+    // Pass the audio file to OpenAI Whisper
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(filePath),
+      model: "whisper-1",
+    });
+
+    // Clean up temporary file
+    await unlink(filePath);
+
+    res.status(200).json({ text: transcription.text });
   } catch (error) {
-    console.error('Error during transcription:', error);
-    return 'Error transcribing audio';
+    console.error("Error during transcription:", error);
+    res.status(500).json({ error: "Failed to transcribe audio" });
   }
 }

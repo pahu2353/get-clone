@@ -1,90 +1,62 @@
 'use client'
 
-import { useState, useRef } from 'react';
-import { transcribeAudio } from '../api/transcribe/route';
+import { useState } from 'react'
+import { Menu, Mic, Send } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-export default function VoiceToTextPage() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcribedText, setTranscribedText] = useState('');
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const text = await transcribeAudio(audioBlob);
-        setTranscribedText(text);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
+export default function ChatInterface() {
+  const [isListening, setIsListening] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md aspect-square mb-8 bg-gray-800 rounded-lg overflow-hidden">
-        <img
-          src="/placeholder.svg?height=400&width=400"
-          alt="Character"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <button
-        onClick={toggleRecording}
-        className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
-          isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
-        } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-blue-500`}
-        aria-label={isRecording ? "Stop recording" : "Start recording"}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="w-8 h-8 text-white"
+    <div className="flex h-screen flex-col bg-gray-100">
+      <header className="flex items-center justify-between p-4 bg-white shadow-sm">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+            <nav className="flex flex-col gap-4">
+              <a href="#" className="text-lg font-medium">Home</a>
+              <a href="#" className="text-lg font-medium">Chat History</a>
+              <a href="#" className="text-lg font-medium">Settings</a>
+            </nav>
+          </SheetContent>
+        </Sheet>
+        <h1 className="text-xl font-bold">ChatGPT</h1>
+        <div className="w-6" /> {/* Spacer for alignment */}
+      </header>
+
+      <main className="flex-1 flex flex-col items-center justify-center p-4 space-y-6">
+        <Avatar className="h-24 w-24">
+          <AvatarImage src="/placeholder.svg" alt="AI Assistant" />
+          <AvatarFallback>AI</AvatarFallback>
+        </Avatar>
+
+        <Button
+          variant={isListening ? "destructive" : "default"}
+          size="icon"
+          className="h-16 w-16 rounded-full"
+          onClick={() => setIsListening(!isListening)}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-          />
-        </svg>
-      </button>
-      {transcribedText && (
-        <div className="mt-8 p-4 bg-gray-800 rounded-lg text-white max-w-md w-full">
-          <h2 className="text-xl font-semibold mb-2">Transcribed Text:</h2>
-          <p>{transcribedText}</p>
-        </div>
-      )}
+          <Mic className="h-8 w-8" />
+          <span className="sr-only">{isListening ? 'Stop listening' : 'Start listening'}</span>
+        </Button>
+
+        <form className="flex w-full max-w-md items-center space-x-2">
+          <Input type="text" placeholder="Type your message..." className="flex-1" />
+          <Button type="submit" size="icon">
+            <Send className="h-4 w-4" />
+            <span className="sr-only">Send message</span>
+          </Button>
+        </form>
+      </main>
     </div>
-  );
+  )
 }
 
