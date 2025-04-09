@@ -25,7 +25,7 @@ uvicorn app:app --reload --log-level debug
 export GOOEY_API_KEY=XXX
 ```
 
-## nwHacks 2025 Best Use of GenAI Winner
+## nwHacks 2025 Best Use of GenAI Winner :trophy:
 Check out our submission on Devpost!
 https://devpost.com/software/get-clone
 
