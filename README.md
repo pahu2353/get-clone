@@ -25,9 +25,12 @@ uvicorn app:app --reload --log-level debug
 export GOOEY_API_KEY=XXX
 ```
 
+## nwHacks 2025 Best Use of GenAI Winner
+Check out our submission on Devpost!
+https://devpost.com/software/get-clone
+
 ## Inspiration ⚙️
 We first came up with this idea when thinking about how cool it would be to have the opportunity to talk to yourself. We wanted to build something personable and speedy, allowing people not familiar with the latest tech trends to become interested in AI. We think that there’s countless applications of this technology, whether that be in sales, hospitals, or elderly homes.
-
 
 ## What it does 🤖
 Get Clone is an app that creates a digital clone of yourself in under a minute. Enter your name, a few sentences about yourself, and a quick video/audio recording, and then watch as your virtual twin comes to life! It speaks, talks, and acts like you, and even has a little bit of your personality.
